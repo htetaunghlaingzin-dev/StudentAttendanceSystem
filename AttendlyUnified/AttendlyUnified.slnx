@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Attendly.Api/Attendly.Api.csproj" />
+    <Project Path="src/Attendly.Application/Attendly.Application.csproj" />
+    <Project Path="src/Attendly.Domain/Attendly.Domain.csproj" />
+    <Project Path="src/Attendly.Infrastructure/Attendly.Infrastructure.csproj" />
+    <Project Path="src/Attendly.Web/Attendly.Web.csproj" />
+    <Project Path="src/Attendly.WinForms/Attendly.WinForms.csproj" />
+  </Folder>
+</Solution>

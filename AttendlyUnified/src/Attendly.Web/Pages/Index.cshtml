@@ -1,0 +1,13 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Attendly Dashboard"; }
+<div class="p-5 rounded-3 text-white" style="background:#027E7E">
+    <h1>Attendly University Portal</h1>
+    <p class="lead">Web client for the shared attendance API</p>
+    <span class="badge bg-light text-dark">API: @Model.ApiStatus</span>
+</div>
+<div class="row mt-4">
+    <div class="col-md-4"><div class="card p-4"><h3>Students</h3><p>Primary-ID sorting and 10-record paging are provided by the API.</p></div></div>
+    <div class="col-md-4"><div class="card p-4"><h3>Attendance</h3><p>Lecturer features use the same server rules.</p></div></div>
+    <div class="col-md-4"><div class="card p-4"><h3>Reports</h3><p>Desktop and web reports share one architecture.</p></div></div>
+</div>

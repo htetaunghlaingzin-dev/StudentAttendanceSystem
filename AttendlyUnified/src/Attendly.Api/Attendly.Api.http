@@ -1,0 +1,6 @@
+@Attendly.Api_HostAddress = http://localhost:5228
+
+GET {{Attendly.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
