@@ -81,9 +81,15 @@ public sealed class AttendanceService(Database db,AuthorizationService authoriza
             await tx.CommitAsync();
         } catch { await tx.RollbackAsync(); throw; }
     }
-    public async Task<List<MonthlyReportRow>> GetMonthlyReportAsync(UserSession s,int roomId,int month,int year)
+    public async Task<List<MonthlyReportRow>> GetMonthlyReportAsync(UserSession s,int roomId,int month,int year,bool homeRoomOnly=false)
     {
-        if(s.Role!=UserRole.Admin && (s.TeacherId is null || !await authorization.CanManageStudentsAsync(s.TeacherId.Value,roomId))) throw new UnauthorizedAccessException("You cannot view this room report.");
+        if(s.Role!=UserRole.Admin)
+        {
+            var allowed=s.TeacherId is not null&&(homeRoomOnly
+                ?await authorization.CanManageStudentsAsync(s.TeacherId.Value,roomId)
+                :await authorization.CanViewStudentsAsync(s.TeacherId.Value,roomId));
+            if(!allowed)throw new UnauthorizedAccessException(homeRoomOnly?"Only this class's home-room lecturer can view the home-room report.":"You are not assigned to this class.");
+        }
         await db.ExecuteAsync("EXEC RecalculateMonthlyAttendance @RoomId,@Month,@Year",new("@RoomId",roomId),new("@Month",month),new("@Year",year));
         return await db.QueryAsync<MonthlyReportRow>("SELECT st.StudentCode,st.StudentName,r.RoomName,m.TotalSessions,m.PresentCount,m.AbsentCount,m.LateCount,m.ExcusedCount,m.AttendancePercentage,m.Remark FROM MonthlyAttendanceSummary m JOIN Students st ON st.StudentId=m.StudentId JOIN Rooms r ON r.RoomId=m.RoomId WHERE m.RoomId=@r AND m.[Month]=@m AND m.[Year]=@y ORDER BY st.StudentId",r=>new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetInt32(3),r.GetInt32(4),r.GetInt32(5),r.GetInt32(6),r.GetInt32(7),r.GetDecimal(8),r.GetString(9)),new("@r",roomId),new("@m",month),new("@y",year));
     }

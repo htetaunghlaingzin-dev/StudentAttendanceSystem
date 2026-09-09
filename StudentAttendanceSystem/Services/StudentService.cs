@@ -8,7 +8,7 @@ public sealed class StudentService(Database db,AuthorizationService authorizatio
 {
     public async Task<List<StudentItem>> GetAsync(UserSession session,int roomId)
     {
-        await authorization.EnsureCanManageStudentsAsync(session,roomId);
+        await authorization.EnsureCanViewStudentsAsync(session,roomId);
         return await db.QueryAsync<StudentItem>("SELECT s.StudentId,s.StudentCode,s.StudentName,COALESCE(s.Gender,''),s.RoomId,r.RoomName,s.IsActive FROM Students s JOIN Rooms r ON r.RoomId=s.RoomId WHERE s.RoomId=@r ORDER BY s.StudentId",r=>new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetInt32(4),r.GetString(5),r.GetBoolean(6)),new SqlParameter("@r",roomId));
     }
     public async Task SaveAsync(UserSession session,int? id,string code,string name,string gender,int roomId,bool active)

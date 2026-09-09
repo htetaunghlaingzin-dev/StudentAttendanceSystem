@@ -1,0 +1,171 @@
+Project StudentAttendanceSystem {
+  database_type: 'Microsoft SQL Server'
+  Note: 'University attendance management system'
+}
+
+Enum UserRole {
+  Admin
+  Teacher
+}
+
+Enum AttendanceStatus {
+  Present
+  Absent
+  Late
+  Excused
+}
+
+Enum SessionStatus {
+  Scheduled
+  Held
+  Cancelled
+  Rescheduled
+}
+
+Table Users {
+  UserId int [pk, increment]
+  Username nvarchar(50) [not null, unique]
+  PasswordHash nvarchar(300) [not null]
+  FullName nvarchar(120) [not null]
+  Role UserRole [not null]
+  IsActive bit [not null, default: 1]
+  CreatedAt datetime2 [not null, default: `SYSUTCDATETIME()`]
+}
+
+Table Teachers {
+  TeacherId int [pk, increment]
+  UserId int [not null, unique, ref: > Users.UserId]
+  TeacherCode nvarchar(30) [not null, unique]
+  FullName nvarchar(120) [not null]
+  Phone nvarchar(30)
+}
+
+Table Rooms {
+  RoomId int [pk, increment]
+  RoomName nvarchar(80) [not null]
+  Department nvarchar(100) [not null]
+  ProgramName nvarchar(120) [not null]
+  StudyLevel nvarchar(30) [not null]
+  Semester tinyint [not null, note: 'Allowed values: 1–10']
+  AcademicYear nvarchar(20) [not null]
+  HomeRoomTeacherId int [ref: > Teachers.TeacherId]
+  IsActive bit [not null, default: 1]
+
+  indexes {
+    (ProgramName, RoomName, AcademicYear, Semester) [unique, name: 'UQ_Room']
+  }
+}
+
+Table Subjects {
+  SubjectId int [pk, increment]
+  SubjectName nvarchar(80) [not null]
+  SubjectCode nvarchar(20) [not null, unique]
+  CourseYear tinyint [not null, default: 1, note: 'Allowed values: 1–5']
+  IsActive bit [not null, default: 1]
+}
+
+Table TeacherAssignments {
+  AssignmentId int [pk, increment]
+  TeacherId int [not null, ref: > Teachers.TeacherId]
+  RoomId int [not null, ref: > Rooms.RoomId]
+  SubjectId int [not null, ref: > Subjects.SubjectId]
+  AcademicYear nvarchar(20) [not null]
+  IsActive bit [not null, default: 1]
+
+  indexes {
+    (TeacherId, RoomId, SubjectId, AcademicYear) [unique, name: 'UQ_Assignment']
+    (TeacherId, RoomId) [name: 'IX_Assignment_TeacherRoom']
+  }
+}
+
+Table Students {
+  StudentId int [pk, increment]
+  StudentCode nvarchar(30) [not null]
+  StudentName nvarchar(120) [not null]
+  Gender nvarchar(15)
+  RoomId int [not null, ref: > Rooms.RoomId]
+  AcademicYear nvarchar(20) [not null]
+  IsActive bit [not null, default: 1]
+
+  indexes {
+    (StudentCode, AcademicYear) [unique, name: 'UQ_StudentCodeYear']
+    (RoomId, IsActive) [name: 'IX_Students_Room']
+  }
+}
+
+Table Timetables {
+  TimetableId int [pk, increment]
+  RoomId int [not null, ref: > Rooms.RoomId]
+  SubjectId int [not null, ref: > Subjects.SubjectId]
+  TeacherId int [not null, ref: > Teachers.TeacherId]
+  DayOfWeek tinyint [not null, note: '1=Monday through 7=Sunday']
+  StartTime time [not null]
+  EndTime time [not null, note: 'Must be later than StartTime']
+  AcademicYear nvarchar(20) [not null]
+  Semester tinyint [not null, note: 'Allowed values: 1–10']
+  EffectiveFrom date [not null]
+  EffectiveTo date [not null, note: 'Must be on or after EffectiveFrom']
+  IsActive bit [not null, default: 1]
+
+  indexes {
+    (RoomId, SubjectId, TeacherId, DayOfWeek, StartTime, AcademicYear, Semester) [unique, name: 'UQ_Timetable']
+    (TeacherId, DayOfWeek, IsActive) [name: 'IX_Timetable_TeacherDay']
+  }
+}
+
+Table ClassSessions {
+  SessionId int [pk, increment]
+  TimetableId int [not null, ref: > Timetables.TimetableId]
+  RoomId int [not null, ref: > Rooms.RoomId]
+  SubjectId int [not null, ref: > Subjects.SubjectId]
+  TeacherId int [not null, ref: > Teachers.TeacherId]
+  SessionDate date [not null]
+  SessionStatus SessionStatus [not null, default: 'Scheduled']
+  CreatedAt datetime2 [not null, default: `SYSUTCDATETIME()`]
+  UpdatedAt datetime2
+
+  indexes {
+    (TimetableId, SessionDate) [unique, name: 'UQ_ClassSession']
+  }
+}
+
+Table Attendance {
+  AttendanceId int [pk, increment]
+  SessionId int [ref: > ClassSessions.SessionId, note: 'Nullable only for legacy attendance']
+  StudentId int [not null, ref: > Students.StudentId]
+  RoomId int [not null, ref: > Rooms.RoomId]
+  SubjectId int [not null, ref: > Subjects.SubjectId]
+  TeacherId int [not null, ref: > Teachers.TeacherId]
+  AttendanceDate date [not null]
+  Status AttendanceStatus [not null]
+  Remark nvarchar(250)
+  CreatedAt datetime2 [not null, default: `SYSUTCDATETIME()`]
+  UpdatedAt datetime2
+  UpdatedBy int [ref: > Teachers.TeacherId]
+
+  indexes {
+    (SessionId, StudentId) [unique, name: 'UX_Attendance_SessionStudent', note: 'Filtered where SessionId is not null']
+    (StudentId, SubjectId, AttendanceDate) [unique, name: 'UX_Attendance_LegacyStudentDate', note: 'Filtered where SessionId is null']
+    (RoomId, AttendanceDate) [name: 'IX_Attendance_RoomDate']
+  }
+}
+
+Table MonthlyAttendanceSummary {
+  SummaryId int [pk, increment]
+  StudentId int [not null, ref: > Students.StudentId]
+  RoomId int [not null, ref: > Rooms.RoomId]
+  Month tinyint [not null, note: 'Allowed values: 1–12']
+  Year smallint [not null]
+  TotalSessions int [not null]
+  PresentCount int [not null]
+  AbsentCount int [not null]
+  LateCount int [not null]
+  ExcusedCount int [not null]
+  AttendancePercentage decimal(5,2) [not null]
+  Remark nvarchar(100) [not null]
+  CalculatedAt datetime2 [not null, default: `SYSUTCDATETIME()`]
+
+  indexes {
+    (StudentId, RoomId, Month, Year) [unique, name: 'UQ_Monthly']
+  }
+}

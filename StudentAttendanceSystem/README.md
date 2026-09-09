@@ -58,7 +58,8 @@ For an older installation, apply the relevant scripts in this order:
 1. `Database/MigrateToUniversity.sql`
 2. `Database/MigrateSemesterTo10.sql`
 3. `Database/MigrateTimetable.sql`
-4. `Database/MigrateWeightedAttendance.sql`
+4. `Database/MigrateCourseYear.sql`
+5. `Database/MigrateWeightedAttendance.sql`
 
 Optional project data:
 
