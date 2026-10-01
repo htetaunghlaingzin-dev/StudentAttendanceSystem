@@ -18,11 +18,9 @@ BEGIN
   SELECT StudentId,RoomId,SUM(SessionHours) TotalSessions,
    SUM(CASE WHEN Status='Present' THEN SessionHours ELSE 0 END) PresentCount,
    SUM(CASE WHEN Status='Absent' THEN SessionHours ELSE 0 END) AbsentCount,
-   SUM(CASE WHEN Status='Late' THEN SessionHours ELSE 0 END) LateCount,
-   SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END) ExcusedCount,
-   CAST(CASE WHEN SUM(SessionHours)-SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END)=0 THEN 0
-        ELSE 100.0*SUM(CASE WHEN Status IN('Present','Late') THEN SessionHours ELSE 0 END)/
-        (SUM(SessionHours)-SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END)) END AS decimal(5,2)) Pct
+   0 LateCount,
+   0 ExcusedCount,
+   CAST(CASE WHEN SUM(SessionHours)=0 THEN 0 ELSE 100.0*SUM(CASE WHEN Status='Present' THEN SessionHours ELSE 0 END)/SUM(SessionHours) END AS decimal(5,2)) Pct
   FROM Weighted GROUP BY StudentId,RoomId
  )
  MERGE MonthlyAttendanceSummary t USING C s ON t.StudentId=s.StudentId AND t.RoomId=s.RoomId AND t.[Month]=@Month AND t.[Year]=@Year

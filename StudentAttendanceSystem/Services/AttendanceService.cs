@@ -19,7 +19,7 @@ public sealed class AttendanceService(Database db,AuthorizationService authoriza
     public async Task<List<AttendanceRow>> GetSessionRowsAsync(UserSession user,int sessionId)
     {
         var session=await GetOwnedSessionAsync(user,sessionId);
-        return await db.QueryAsync<AttendanceRow>("SELECT st.StudentId,st.StudentCode,st.StudentName,COALESCE(a.Status,'Present'),a.Remark FROM Students st LEFT JOIN Attendance a ON a.SessionId=@session AND a.StudentId=st.StudentId WHERE st.RoomId=@room AND st.IsActive=1 ORDER BY st.StudentId",r=>new(r.GetInt32(0),r.GetString(1),r.GetString(2),Enum.Parse<AttendanceStatus>(r.GetString(3)),r.IsDBNull(4)?null:r.GetString(4)),new SqlParameter("@session",sessionId),new SqlParameter("@room",session.RoomId));
+        return await db.QueryAsync<AttendanceRow>("SELECT st.StudentId,st.StudentCode,st.StudentName,CASE WHEN a.Status='Late' THEN 'Present' WHEN a.Status='Excused' THEN 'Absent' ELSE COALESCE(a.Status,'Present') END,a.Remark FROM Students st LEFT JOIN Attendance a ON a.SessionId=@session AND a.StudentId=st.StudentId WHERE st.RoomId=@room AND st.IsActive=1 ORDER BY st.StudentId",r=>new(r.GetInt32(0),r.GetString(1),r.GetString(2),Enum.Parse<AttendanceStatus>(r.GetString(3)),r.IsDBNull(4)?null:r.GetString(4)),new SqlParameter("@session",sessionId),new SqlParameter("@room",session.RoomId));
     }
 
     public async Task SaveSessionAsync(UserSession user,int sessionId,IEnumerable<AttendanceRow> rows)
@@ -68,7 +68,7 @@ public sealed class AttendanceService(Database db,AuthorizationService authoriza
     public async Task<List<AttendanceRow>> GetEntryRowsAsync(UserSession s,int roomId,int subjectId,DateTime date)
     {
         if(s.Role!=UserRole.Admin && (s.TeacherId is null || !await authorization.CanViewAttendanceAsync(s.TeacherId.Value,roomId,subjectId))) throw new UnauthorizedAccessException("You cannot view this attendance.");
-        return await db.QueryAsync<AttendanceRow>("SELECT st.StudentId,st.StudentCode,st.StudentName,COALESCE(a.Status,'Present'),a.Remark FROM Students st LEFT JOIN Attendance a ON a.StudentId=st.StudentId AND a.SubjectId=@s AND a.AttendanceDate=@d WHERE st.RoomId=@r AND st.IsActive=1 ORDER BY st.StudentId",r=>new(r.GetInt32(0),r.GetString(1),r.GetString(2),Enum.Parse<AttendanceStatus>(r.GetString(3)),r.IsDBNull(4)?null:r.GetString(4)),new("@s",subjectId),new("@d",date.Date),new("@r",roomId));
+        return await db.QueryAsync<AttendanceRow>("SELECT st.StudentId,st.StudentCode,st.StudentName,CASE WHEN a.Status='Late' THEN 'Present' WHEN a.Status='Excused' THEN 'Absent' ELSE COALESCE(a.Status,'Present') END,a.Remark FROM Students st LEFT JOIN Attendance a ON a.StudentId=st.StudentId AND a.SubjectId=@s AND a.AttendanceDate=@d WHERE st.RoomId=@r AND st.IsActive=1 ORDER BY st.StudentId",r=>new(r.GetInt32(0),r.GetString(1),r.GetString(2),Enum.Parse<AttendanceStatus>(r.GetString(3)),r.IsDBNull(4)?null:r.GetString(4)),new("@s",subjectId),new("@d",date.Date),new("@r",roomId));
     }
     public async Task SaveAsync(UserSession s,int roomId,int subjectId,DateTime date,IEnumerable<AttendanceRow> rows)
     {
@@ -91,6 +91,6 @@ public sealed class AttendanceService(Database db,AuthorizationService authoriza
             if(!allowed)throw new UnauthorizedAccessException(homeRoomOnly?"Only this class's home-room lecturer can view the home-room report.":"You are not assigned to this class.");
         }
         await db.ExecuteAsync("EXEC RecalculateMonthlyAttendance @RoomId,@Month,@Year",new("@RoomId",roomId),new("@Month",month),new("@Year",year));
-        return await db.QueryAsync<MonthlyReportRow>("SELECT st.StudentCode,st.StudentName,r.RoomName,m.TotalSessions,m.PresentCount,m.AbsentCount,m.LateCount,m.ExcusedCount,m.AttendancePercentage,m.Remark FROM MonthlyAttendanceSummary m JOIN Students st ON st.StudentId=m.StudentId JOIN Rooms r ON r.RoomId=m.RoomId WHERE m.RoomId=@r AND m.[Month]=@m AND m.[Year]=@y ORDER BY st.StudentId",r=>new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetInt32(3),r.GetInt32(4),r.GetInt32(5),r.GetInt32(6),r.GetInt32(7),r.GetDecimal(8),r.GetString(9)),new("@r",roomId),new("@m",month),new("@y",year));
+        return await db.QueryAsync<MonthlyReportRow>("SELECT st.StudentCode,st.StudentName,r.RoomName,m.TotalSessions,m.PresentCount,m.AbsentCount,m.AttendancePercentage,m.Remark FROM MonthlyAttendanceSummary m JOIN Students st ON st.StudentId=m.StudentId JOIN Rooms r ON r.RoomId=m.RoomId WHERE m.RoomId=@r AND m.[Month]=@m AND m.[Year]=@y ORDER BY st.StudentId",r=>new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetInt32(3),r.GetInt32(4),r.GetInt32(5),r.GetDecimal(6),r.GetString(7)),new("@r",roomId),new("@m",month),new("@y",year));
     }
 }

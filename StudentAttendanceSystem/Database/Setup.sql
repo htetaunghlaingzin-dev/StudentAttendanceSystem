@@ -11,7 +11,7 @@ CREATE TABLE TeacherAssignments(AssignmentId int IDENTITY PRIMARY KEY,TeacherId 
 CREATE TABLE Students(StudentId int IDENTITY PRIMARY KEY,StudentCode nvarchar(30) NOT NULL,StudentName nvarchar(120) NOT NULL,Gender nvarchar(15) NULL,RoomId int NOT NULL REFERENCES Rooms(RoomId),AcademicYear nvarchar(20) NOT NULL,IsActive bit NOT NULL DEFAULT 1,CONSTRAINT UQ_StudentCodeYear UNIQUE(StudentCode,AcademicYear));
 CREATE TABLE Timetables(TimetableId int IDENTITY PRIMARY KEY,RoomId int NOT NULL REFERENCES Rooms(RoomId),SubjectId int NOT NULL REFERENCES Subjects(SubjectId),TeacherId int NOT NULL REFERENCES Teachers(TeacherId),DayOfWeek tinyint NOT NULL CHECK(DayOfWeek BETWEEN 1 AND 7),StartTime time(0) NOT NULL,EndTime time(0) NOT NULL,AcademicYear nvarchar(20) NOT NULL,Semester tinyint NOT NULL CHECK(Semester BETWEEN 1 AND 10),EffectiveFrom date NOT NULL,EffectiveTo date NOT NULL,IsActive bit NOT NULL DEFAULT 1,CONSTRAINT CK_Timetable_Time CHECK(EndTime>StartTime),CONSTRAINT CK_Timetable_Dates CHECK(EffectiveTo>=EffectiveFrom),CONSTRAINT UQ_Timetable UNIQUE(RoomId,SubjectId,TeacherId,DayOfWeek,StartTime,AcademicYear,Semester));
 CREATE TABLE ClassSessions(SessionId int IDENTITY PRIMARY KEY,TimetableId int NOT NULL REFERENCES Timetables(TimetableId),RoomId int NOT NULL REFERENCES Rooms(RoomId),SubjectId int NOT NULL REFERENCES Subjects(SubjectId),TeacherId int NOT NULL REFERENCES Teachers(TeacherId),SessionDate date NOT NULL,SessionStatus varchar(12) NOT NULL DEFAULT 'Scheduled' CHECK(SessionStatus IN('Scheduled','Held','Cancelled','Rescheduled')),CreatedAt datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),UpdatedAt datetime2 NULL,CONSTRAINT UQ_ClassSession UNIQUE(TimetableId,SessionDate));
-CREATE TABLE Attendance(AttendanceId int IDENTITY PRIMARY KEY,SessionId int NULL REFERENCES ClassSessions(SessionId),StudentId int NOT NULL REFERENCES Students(StudentId),RoomId int NOT NULL REFERENCES Rooms(RoomId),SubjectId int NOT NULL REFERENCES Subjects(SubjectId),TeacherId int NOT NULL REFERENCES Teachers(TeacherId),AttendanceDate date NOT NULL,Status varchar(10) NOT NULL CHECK(Status IN('Present','Absent','Late','Excused')),Remark nvarchar(250) NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),UpdatedAt datetime2 NULL,UpdatedBy int NULL REFERENCES Teachers(TeacherId));
+CREATE TABLE Attendance(AttendanceId int IDENTITY PRIMARY KEY,SessionId int NULL REFERENCES ClassSessions(SessionId),StudentId int NOT NULL REFERENCES Students(StudentId),RoomId int NOT NULL REFERENCES Rooms(RoomId),SubjectId int NOT NULL REFERENCES Subjects(SubjectId),TeacherId int NOT NULL REFERENCES Teachers(TeacherId),AttendanceDate date NOT NULL,Status varchar(10) NOT NULL CONSTRAINT CK_Attendance_Status CHECK(Status IN('Present','Absent')),Remark nvarchar(250) NULL,CreatedAt datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),UpdatedAt datetime2 NULL,UpdatedBy int NULL REFERENCES Teachers(TeacherId));
 CREATE TABLE MonthlyAttendanceSummary(SummaryId int IDENTITY PRIMARY KEY,StudentId int NOT NULL REFERENCES Students(StudentId),RoomId int NOT NULL REFERENCES Rooms(RoomId),[Month] tinyint NOT NULL CHECK([Month] BETWEEN 1 AND 12),[Year] smallint NOT NULL,TotalSessions int NOT NULL,PresentCount int NOT NULL,AbsentCount int NOT NULL,LateCount int NOT NULL,ExcusedCount int NOT NULL,AttendancePercentage decimal(5,2) NOT NULL,Remark nvarchar(100) NOT NULL,CalculatedAt datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),CONSTRAINT UQ_Monthly UNIQUE(StudentId,RoomId,[Month],[Year]));
 CREATE INDEX IX_Assignment_TeacherRoom ON TeacherAssignments(TeacherId,RoomId) INCLUDE(SubjectId,IsActive);
 CREATE INDEX IX_Students_Room ON Students(RoomId,IsActive);
@@ -38,11 +38,9 @@ BEGIN
   SELECT StudentId,RoomId,SUM(SessionHours) TotalSessions,
    SUM(CASE WHEN Status='Present' THEN SessionHours ELSE 0 END) PresentCount,
    SUM(CASE WHEN Status='Absent' THEN SessionHours ELSE 0 END) AbsentCount,
-   SUM(CASE WHEN Status='Late' THEN SessionHours ELSE 0 END) LateCount,
-   SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END) ExcusedCount,
-   CAST(CASE WHEN SUM(SessionHours)-SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END)=0 THEN 0
-        ELSE 100.0*SUM(CASE WHEN Status IN('Present','Late') THEN SessionHours ELSE 0 END)/
-        (SUM(SessionHours)-SUM(CASE WHEN Status='Excused' THEN SessionHours ELSE 0 END)) END AS decimal(5,2)) Pct
+   0 LateCount,
+   0 ExcusedCount,
+   CAST(CASE WHEN SUM(SessionHours)=0 THEN 0 ELSE 100.0*SUM(CASE WHEN Status='Present' THEN SessionHours ELSE 0 END)/SUM(SessionHours) END AS decimal(5,2)) Pct
   FROM Weighted GROUP BY StudentId,RoomId
  )
  MERGE MonthlyAttendanceSummary t USING C s ON t.StudentId=s.StudentId AND t.RoomId=s.RoomId AND t.[Month]=@Month AND t.[Year]=@Year

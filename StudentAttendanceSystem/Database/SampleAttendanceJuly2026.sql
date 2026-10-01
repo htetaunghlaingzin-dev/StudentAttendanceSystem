@@ -38,13 +38,13 @@ IF (SELECT COUNT(*) FROM @Dates)<>20 THROW 51001,'Expected exactly 20 sample ses
     SELECT st.StudentId,d.AttendanceDate,
       CASE
         WHEN st.StudentNo<=10 AND d.SessionNo<=12 THEN 'Present'
-        WHEN st.StudentNo<=10 AND d.SessionNo<=14 THEN 'Late'
+        WHEN st.StudentNo<=10 AND d.SessionNo<=14 THEN 'Present'
         WHEN st.StudentNo<=10 THEN 'Absent'
         WHEN st.StudentNo<=20 AND d.SessionNo<=16 THEN 'Present'
-        WHEN st.StudentNo<=20 AND d.SessionNo<=18 THEN 'Late'
+        WHEN st.StudentNo<=20 AND d.SessionNo<=18 THEN 'Present'
         WHEN st.StudentNo<=20 THEN 'Absent'
         WHEN d.SessionNo<=14 THEN 'Present'
-        WHEN d.SessionNo<=16 THEN 'Late'
+        WHEN d.SessionNo<=16 THEN 'Present'
         ELSE 'Absent'
       END [Status]
     FROM RankedStudents st CROSS JOIN @Dates d

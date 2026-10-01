@@ -59,6 +59,7 @@ For an older installation, apply the relevant scripts in this order:
 2. `Database/MigrateSemesterTo10.sql`
 3. `Database/MigrateTimetable.sql`
 4. `Database/MigrateCourseYear.sql`
+5. `Database/MigratePresentAbsentOnly.sql`
 5. `Database/MigrateWeightedAttendance.sql`
 
 Optional project data:
@@ -119,9 +120,9 @@ dotnet run --project StudentAttendanceSystem/StudentAttendanceSystem.csproj
 - A lecturer sees only active assignments and scheduled sessions assigned to them.
 - The selected class, subject, lecturer, timetable, and student must remain active.
 - A one-hour session contributes one attendance unit; a two-hour session contributes two units.
-- Present and Late units count as attended.
+- Present units count as attended.
 - Absent units do not count as attended.
-- Excused units are removed from the percentage denominator.
+- Absent units count as missed attendance.
 - Cancelled sessions are excluded from calculations.
 - Attendance below 75% receives a warning remark.
 

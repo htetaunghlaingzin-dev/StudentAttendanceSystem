@@ -113,13 +113,13 @@ WHERE cs.SessionStatus<>'Held';
  SELECT st.StudentId,ss.SessionId,ss.SubjectId,ss.TeacherId,ss.AttendanceDate,ss.MonthNo,
  CASE
   WHEN st.StudentNo<=10 AND ss.SessionNo%10 BETWEEN 1 AND 6 THEN 'Present'
-  WHEN st.StudentNo<=10 AND ss.SessionNo%10=7 THEN 'Late'
+  WHEN st.StudentNo<=10 AND ss.SessionNo%10=7 THEN 'Present'
   WHEN st.StudentNo<=10 THEN 'Absent'
   WHEN st.StudentNo<=20 AND ss.SessionNo%10 BETWEEN 1 AND 8 THEN 'Present'
-  WHEN st.StudentNo<=20 AND ss.SessionNo%10=9 THEN 'Late'
+  WHEN st.StudentNo<=20 AND ss.SessionNo%10=9 THEN 'Present'
   WHEN st.StudentNo<=20 THEN 'Absent'
   WHEN ss.SessionNo%10 BETWEEN 1 AND 7 THEN 'Present'
-  WHEN ss.SessionNo%10=8 THEN 'Late'
+  WHEN ss.SessionNo%10=8 THEN 'Present'
   ELSE 'Absent' END [Status]
  FROM RankedStudents st CROSS JOIN ScheduledSessions ss
 )

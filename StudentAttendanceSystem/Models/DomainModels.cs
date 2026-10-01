@@ -1,7 +1,7 @@
 namespace StudentAttendanceSystem.Models;
 
 public enum UserRole { Admin, Teacher }
-public enum AttendanceStatus { Present, Absent, Late, Excused }
+public enum AttendanceStatus { Present, Absent }
 
 public sealed record UserSession(int UserId, int? TeacherId, string Username, string FullName, UserRole Role);
 public sealed record LookupItem(int Id, string Name) { public override string ToString() => Name; }
@@ -17,4 +17,4 @@ public sealed record ScheduledAttendanceSession(int SessionId,int RoomId,int Sub
     public string TimeLabel=>$"{DateTime.Today.Add(StartTime):h:mm tt} - {DateTime.Today.Add(EndTime):h:mm tt}";
 }
 public sealed record MonthlyReportRow(string StudentCode, string StudentName, string Room, int TotalSessions,
-    int Present, int Absent, int Late, int Excused, decimal AttendancePercentage, string Remark);
+    int Present, int Absent, decimal AttendancePercentage, string Remark);
